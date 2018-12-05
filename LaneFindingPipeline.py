@@ -86,8 +86,11 @@ def Pipeline(image):
 
 if __name__ == "__main__":
     #Create the image grabber
-    imageGrabber = ImageSourceGrabber("/home/engin/Documents/Projects/CarND/CarND-Advanced-Lane-Lines/test_images")
-    #imageGrabber = VideoSourceGrabber("/home/engin/Documents/Projects/CarND/CarND-Advanced-Lane-Lines/project_video.mp4")
+    #imageGrabber = ImageSourceGrabber("/home/engin/Documents/Projects/CarND/CarND-Advanced-Lane-Lines/test_images")
+    imageGrabber = VideoSourceGrabber("/home/engin/Documents/Projects/CarND/CarND-Advanced-Lane-Lines/project_video.mp4")
+    # imageGrabber = VideoSourceGrabber("/home/engin/Documents/new_clip.mov")
+    # imageGrabber = VideoSourceGrabber("/home/engin/sub2.mov")
+    #imageGrabber = VideoSourceGrabber("/home/engin/sub3.mov")
     #imageGrabber = VideoSourceGrabber("/home/engin/Documents/Projects/CarND/CarND-Advanced-Lane-Lines/challenge_video.mp4")
 
     imageGrabber.Init()
@@ -117,4 +120,4 @@ if __name__ == "__main__":
 
         cv2.imwrite("./test_images_out/{}.png".format(counter), pipeline_output)
         counter = counter + 1
-        cv2.waitKey(33)
+        cv2.waitKey(10)

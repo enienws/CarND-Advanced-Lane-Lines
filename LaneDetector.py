@@ -106,23 +106,40 @@ class LaneDetector:
                 left_centroids.append(left_centroid)
 
             #Determine the position of right centroid
-            if window_centroid[1] != 0:
+            if window_centroid[1] != 1280:
                 right_centroid = [int(window_centroid[1]), int(current_level * window_height + window_height/2)]
                 right_centroids.append(right_centroid)
 
             #Iterate the level
             current_level = current_level - 1
 
+
+        # if len(left_centroids) >= 2:
         left_centroids = np.array(left_centroids)
-        self.left_centroids = left_centroids = left_centroids.transpose()
+        self.left_centroids = left_centroids.transpose()
+        self.left_model = np.polyfit(self.left_centroids[1,:], self.left_centroids[0,:], 2)
+        # else:
+        #     if self.left_model is None:
+        #         left_centroids = np.array(left_centroids)
+        #         self.left_centroids = left_centroids.transpose()
+        #         self.left_model = np.polyfit(self.left_centroids[1, :], self.left_centroids[0, :], 2)
+        #     else:
+        #         print("left using history")
 
-        self.left_model = left_polyfit = np.polyfit(left_centroids[1,:], left_centroids[0,:], 2)
-
+        # if len(right_centroids) >= 2:
         right_centroids = np.array(right_centroids)
-        self.right_centroids = right_centroids = right_centroids.transpose()
-        self.right_model = right_polyfit = np.polyfit(right_centroids[1,:], right_centroids[0,:], 2)
+        self.right_centroids = right_centroids.transpose()
+        self.right_model = np.polyfit(self.right_centroids[1,:], self.right_centroids[0,:], 2)
+        # else:
+        #     if self.right_model is None:
+        #         right_centroids = np.array(right_centroids)
+        #         self.right_centroids = right_centroids.transpose()
+        #         self.right_model = np.polyfit(self.right_centroids[1, :], self.right_centroids[0, :], 2)
+        #     else:
+        #         print("right using history")
 
-        return left_polyfit, right_polyfit
+
+        return self.left_model, self.right_model
 
     def DrawWindowCentroids(self, image, window_centroids, window_width=50, window_height=120):
         window_image = np.zeros_like(image)
@@ -140,7 +157,7 @@ class LaneDetector:
 
         return window_image
 
-    def FindWindowCentroids(self, image, window_width=50, window_height=120, margin=100):
+    def FindWindowCentroids(self, image, window_width=100, window_height=120, margin=60):
         window_centroids = []  # Store the (left,right) window centroid positions per level
         window = np.ones(window_width)  # Create our window template that we will use for convolutions
 
@@ -176,7 +193,7 @@ class LaneDetector:
             #print("left: {}".format(np.sum(left_convolved_signal)))
             l_append = True
             r_append = True
-            if np.sum(left_convolved_signal) > 5000:
+            if np.sum(left_convolved_signal) > 0:
                 l_center = np.argmax(left_convolved_signal) + l_min_index - offset
             else:
                 # do not place a window
@@ -188,7 +205,7 @@ class LaneDetector:
             r_max_index = int(min(r_center + offset + margin, image.shape[1]))
             right_convolved_signal = conv_signal[r_min_index:r_max_index]
             #print("right: {}".format(np.sum(right_convolved_signal)))
-            if np.sum(right_convolved_signal) > 5000:
+            if np.sum(right_convolved_signal) > 0:
                 r_center = np.argmax(conv_signal[r_min_index:r_max_index]) + r_min_index - offset
             else:
                 # do not place a window
@@ -200,11 +217,11 @@ class LaneDetector:
             if (r_append and l_append) == True:
                 window_centroids.append((l_center, r_center))
             elif r_append == False and l_append == True:
-                window_centroids.append((l_center, 0))
+                window_centroids.append((l_center, 1280))
             elif r_append == False and l_append == True:
                 window_centroids.append((0, r_center))
             elif (r_append and l_append) == False:
-                window_centroids.append((0,0))
+                window_centroids.append((0,1280))
 
         self.window_centroids = window_centroids
 

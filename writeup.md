@@ -258,3 +258,8 @@ In other words, determined thresholds may not work with changing conditions, ie.
 In project video, one should notice that, system starts to perform a little badly in changing cotings of asphalt. 
 
 I have performed too many tests in order to find the best threshold set for the given problem but after a while this work seems unnecessary since finding such a threshold set is impossible. As I have mentioned an adaptive thresholding mechanism can  be implemented or a machine learning model should be used in order to determine lane lines. 
+
+### After review:
+I have started to use LAB colorspace. The B channel is very successful on detecting the yellow lane. Additionally I have started to use L channel of HLS colorspace. I noticed that L channel is better on detecting the lane lines especially white dashed lanes. 
+
+I have applied Contrast Limited Adaptive Histogram Equalization, CLAHE. Applying histogram equalization makes each algorithm run better. 

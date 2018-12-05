@@ -57,9 +57,10 @@ class ImageThresholder:
         # Return the binary image
         return binary_output
 
-    def hls_colorspace_thresh(self, img, h_threshold=(0, 255), s_threshold=(0, 255)):
+    def hls_colorspace_thresh(self, img, h_threshold=(0, 255), l_threshold=(0, 255), s_threshold=(0, 255)):
         #Fetch the thresholds
         h_threshold_min, h_threshold_max = h_threshold
+        l_threshold_min, l_threshold_max = l_threshold
         s_threshold_min, s_threshold_max = s_threshold
 
         #Convert RGB image to HLS image
@@ -67,17 +68,39 @@ class ImageThresholder:
 
         #Get the channels
         h_channel = hls_image[:, :, 0]
+        l_channel = hls_image[:, :, 1]
         s_channel = hls_image[:, :, 2]
 
         #Threshold hue channel
         binary_h = np.zeros((hls_image.shape[0], hls_image.shape[1]))
         binary_h[(h_channel > h_threshold_min) & (h_channel <= h_threshold_max)] = 1
 
-        #Threshold saturation channel
-        binary_s = np.zeros((hls_image.shape[0], hls_image.shape[1]))
-        binary_s[(s_channel > s_threshold_min) & (s_channel <= s_threshold_max)] = 1
+        #Threshold lightness channel
+        binary_l = np.zeros((hls_image.shape[0], hls_image.shape[1]))
+        binary_l[(l_channel > l_threshold_min) & (l_channel <= l_threshold_max)] = 1
 
-        return binary_h, binary_s
+        #Threshold saturation channel
+        binary_s = np.ones((hls_image.shape[0], hls_image.shape[1]))
+        binary_s[(s_channel > s_threshold_min) & (s_channel <= s_threshold_max)] = 0
+
+        return binary_h, binary_l, binary_s
+
+    def lab_colorspace_thresh(self, img, b_threshold=(0, 255)):
+        #Fetch the thresholds
+        b_threshold_min, b_threshold_max = b_threshold
+
+        #Convert RGB image to HLS image
+        LAB_image = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+
+        #Get the channels
+        b_channel = LAB_image[:, :, 2]
+
+        #Threshold hue channel
+        binary_b = np.ones((LAB_image.shape[0], LAB_image.shape[1]))
+        binary_b[(b_channel > b_threshold_min) & (b_channel <= b_threshold_max)] = 0
+
+        return binary_b
+
 
     def hough_lines(self, img, rho, theta, threshold, min_line_len, max_line_gap):
         """
@@ -106,26 +129,36 @@ class ImageThresholder:
         derivative_y = cv2.Sobel(image_gray, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
 
         #Perform different thresholdings on the image
-        abs_sobel_image_x, abs_sobel_image_y = self.abs_sobel_thresh(derivative_x, derivative_y, (25, 255), (50,255))
+        abs_sobel_image_x, abs_sobel_image_y = self.abs_sobel_thresh(derivative_x, derivative_y, (45, 255), (50,255))
         abs_sobel_image_x = self.Morph_Open(abs_sobel_image_x)
+        abs_sobel_image_x[:,0:640] = 0
+        abs_sobel_image_x[600:720, 1100:1280] = 0
+        abs_sobel_image_x[500:600, 1200:1280] = 0
         abs_sobel_image_y = self.Morph_Open(abs_sobel_image_y)
+        cv2.imshow("sobel_x", abs_sobel_image_x * 255)
 
         mag_sobel_image = self.mag_sobel_thresh(derivative_x, derivative_y, (50,255))
-        mag_sobel_image = self.Morph_Open(mag_sobel_image)
+        # mag_sobel_image = self.Morph_Open(mag_sobel_image)
 
         dir_sobel_image = self.dir_sobel_thresh(derivative_x, derivative_y, (0.0, 0.1))
         #dir_sobel_image = self.Morph_Open(dir_sobel_image)
 
         #dir_sobel_image = self.dir_sobel_thresh(image_gray, derivative_x, derivative_y, (-0.3925, -0.7852))
 
-        color_h_binary_image, color_s_binary_image = self.hls_colorspace_thresh(image, (0, 17), (90, 255))
-        color_h_binary_image = self.Morph_Open(color_h_binary_image)
-        color_s_binary_image = self.Morph_Open(color_s_binary_image)
+        color_h_binary_image, color_l_binary_image, color_s_binary_image = self.hls_colorspace_thresh(image, (0, 0), (220, 255), (0, 50))
+        color_s_binary_image = color_l_binary_image
+        cv2.imshow("l_channel", color_l_binary_image * 255)
+
+        color_b_binary_image = self.lab_colorspace_thresh(image, (0, 150))
+        color_b_binary_image = self.Morph_Open(color_b_binary_image)
+        cv2.imshow("b_image", color_b_binary_image * 255)
 
         #Combine  the results
         combined = np.zeros_like(abs_sobel_image_x)
-        combined[ (abs_sobel_image_x == 1) | ((color_s_binary_image == 1)) ] = 1
+        combined[(color_s_binary_image == 1) | (color_b_binary_image == 1) | (abs_sobel_image_x == 1)] = 1
+        #
         combined = self.Morph_Open(combined, iteration=1)
+        cv2.imshow("combined", combined * 255)
 
         # rho = 1
         # theta = np.pi / 180
@@ -142,7 +175,7 @@ if __name__ == "__main__":
     thresholder = ImageThresholder()
 
     #Read the image
-    image = cv2.imread("./images/project_video_sample_warped.png")
+    image = cv2.imread("./images/project_video_sample_2_warped.png")
 
     combined, abs_sobel_image_x, abs_sobel_image_y, mag_sobel_image, dir_sobel_image, color_h_binary_image, color_s_binary_image = thresholder.Perform(image)
 
